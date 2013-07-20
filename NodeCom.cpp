@@ -116,10 +116,10 @@ void NodeCom::run(const LIGraph &LG, const Graph &G,float y){
 					}
 					else {
 						uninserted[uninsertedend++]=temp;
-						
 						for(int k=0;k<LG.getV();k++){
 							ComNodeadj[k]-=LG.getLI(k,temp);
 						}
+						
 					}
 				}//endfor
 				waitedend = 0;
@@ -138,9 +138,7 @@ void NodeCom::run(const LIGraph &LG, const Graph &G,float y){
 							waited[waitedend++].influence=LG.getTotalInfluence(k);
 							inthis[k]=true;
 							//Add the influence to the community influence
-							for(int l=0;l<LG.getV();l++){
-								ComNodeadj[l]+=LG.getLI(l,k);
-							}
+							
 						}
 					}//endfor
 				}//endfor
@@ -151,9 +149,7 @@ void NodeCom::run(const LIGraph &LG, const Graph &G,float y){
 					waited[waitedend].node=uninserted[j];
 					waited[waitedend++].influence=LG.getTotalInfluence(uninserted[j]);
 					//Add the influence of uninserted node,again
-					for(int l=0;l<LG.getV();l++){
-						ComNodeadj[l]+=LG.getLI(l,uninserted[j]);
-					}	
+					
 				}
 				uninsertedend=0;
 				sort(waited.begin(),waited.begin()+waitedend);
@@ -165,6 +161,10 @@ void NodeCom::run(const LIGraph &LG, const Graph &G,float y){
 					int temp=waited[j].node;
 					if(ComNodeadj[temp]>=y){
 						join_Node(LG,temp);
+						//Add the influence to the influence vector of the community
+						for(int k=0;k<LG.getV();k++){
+							ComNodeadj[k]+=LG.getLI(k,temp);
+						}
 						flag = 1;
 					}
 					else {
