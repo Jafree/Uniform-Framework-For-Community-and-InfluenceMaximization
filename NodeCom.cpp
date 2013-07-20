@@ -107,8 +107,7 @@ void NodeCom::run(const LIGraph &LG, const Graph &G,float y){
 			create_Community(LG, G,v);			
 			int flag;
 			//begin a round
-			while(true){
-				flag = 0;					
+			flag = 0;					
 				for(int j=0;j<waitedend;j++){
 					int temp=waited[j].node;
 					if(ComNodeadj[temp]>=y){
@@ -123,14 +122,12 @@ void NodeCom::run(const LIGraph &LG, const Graph &G,float y){
 						}
 					}
 				}//endfor
-				
+				waitedend = 0;
 				if(flag == 0) {
-					waitedend=0;
 					insertedend=0;
 					uninsertedend=0;
-					break;
+					continue;
 				}
-				waitedend = 0;
 				//Update the waitedqueue
 				
 				for(int j=0;j<insertedend;j++){
@@ -159,10 +156,55 @@ void NodeCom::run(const LIGraph &LG, const Graph &G,float y){
 					}	
 				}
 				uninsertedend=0;
-				if(waitedend==0)break;
+				sort(waited.begin(),waited.begin()+waitedend);
+				
+
+			while(true){
+				flag = 0;					
+				for(int j=0;j<waitedend;j++){
+					int temp=waited[j].node;
+					if(ComNodeadj[temp]>=y){
+						join_Node(LG,temp);
+						flag = 1;
+					}
+					else {
+						uninserted[uninsertedend++]=temp;
+						
+					}
+				}//endfor
+				waitedend = 0;
+				if(flag == 0) {
+					insertedend=0;
+					uninsertedend=0;
+					break;
+				}
+				//Update the waitedqueue
+				
+				for(int j=0;j<insertedend;j++){
+					adjIterator tempiter(G,inserted[j]);
+					for(int k=tempiter.bbeg();tempiter.end()!=true;k=tempiter.next()){
+						if(inthis[k]==false){
+							waited[waitedend].node=k;
+							waited[waitedend++].influence=LG.getTotalInfluence(k);
+							inthis[k]=true;
+							
+						}
+					}//endfor
+				}//endfor
+				insertedend=0;
+
+				//The influence of the neighbor of uninserted node is not considered. 
+				for(int j=0;j<uninsertedend;j++){
+					waited[waitedend].node=uninserted[j];
+					waited[waitedend++].influence=LG.getTotalInfluence(uninserted[j]);
+					//Add the influence of uninserted node,again
+				}
+				uninsertedend=0;
 				sort(waited.begin(),waited.begin()+waitedend);
 				
 			}//endwhile
+
+
 		}//endif
 
 	}//endfor
