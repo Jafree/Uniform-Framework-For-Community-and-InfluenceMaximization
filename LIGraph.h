@@ -10,7 +10,9 @@
 #ifndef VARIABLE_Z       //Set the variable z  , the enhancement parameter
 #define VARIABLE_Z 1.0
 #endif
-
+#ifndef VARIABLE_LASTROUND
+#define VARIABLE_LASTROUND 0.8
+#endif 
 #include "adjIterator.h"
 #include <vector>
 

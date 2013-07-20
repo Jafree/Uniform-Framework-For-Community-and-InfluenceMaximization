@@ -65,12 +65,7 @@ private:
 	vector<InfluenceValue> waited; 
 	int waitedend;
 	
-	//Insert but have not added neighbors
-	vector<int> inserted;
-	int insertedend;
-	//Not insert, but also need next round check
-	vector<int> uninserted;
-	int uninsertedend;
+	int position;
 };
 
 #endif

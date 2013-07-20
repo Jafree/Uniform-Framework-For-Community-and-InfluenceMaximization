@@ -9,8 +9,8 @@
 //////////////////////////////////////////////////////////////////////
 
 
-NodeCom::NodeCom(const LIGraph &LG): cno(-1), ComNodeadj(LG.getV(),0.0F),inflag(LG.getV(),0),InfluencePair(LG.getV())
-	,waited(LG.getV()),inserted(LG.getV(),-1),uninserted(LG.getV(),-1),inthis(LG.getV(),false),insertedend(0),uninsertedend(0),waitedend(0)
+NodeCom::NodeCom(const LIGraph &LG): cno(-1),position(-1), ComNodeadj(LG.getV(),0.0F),inflag(LG.getV(),0),InfluencePair(LG.getV())
+	,waited(LG.getV()),waitedend(0),inthis(LG.getV(),false)
 			
 {	
 	
@@ -21,12 +21,12 @@ NodeCom::NodeCom(const LIGraph &LG): cno(-1), ComNodeadj(LG.getV(),0.0F),inflag(
 	}
 	// sort based on the influence
 	sort(InfluencePair.begin(), InfluencePair.end());
-/*	double sum=0;
+	double sum=0;
 	for(int i=0;i<LG.getV();i++){
 		cout<<setw(6)<<InfluencePair[i].node<<ends<<InfluencePair[i].influence<<ends<<LG.Influenced[i]<<endl;
 		sum+=InfluencePair[i].influence;
 	}
-	cout<<"总数"<<sum<<endl;*/
+	cout<<"总数"<<sum<<endl;
 
 }
 
@@ -40,7 +40,7 @@ void NodeCom::create_Community(const LIGraph &LG, const Graph &G, int c){
 	//set the functioning community and set restart
 	cno = c;
 	inthis[c]=true;
-
+	position=-1;
 	//set the flag which denotes that the node is in a community
 	inflag[cno]++;
 
@@ -73,25 +73,24 @@ void NodeCom::join_Node(const LIGraph &LG, int v){
 	//join the community
 	ComToNode.insert(make_pair(cno, v));
 	
-	/*// Compute the influence of the community to each node
+	// Compute the influence of the community to each node
 	for(int i=0;i<LG.getV();i++){
 		ComNodeadj[i]+=LG.getLI(i,v);
 	}
 	
-	*/
-	inserted[insertedend++]=v;
+
 }
 
-/*
+
 //get next node to join the community,if exits
 int NodeCom::get_NextNode(const LIGraph &LG, float y){
 	++position;
 	for(; position<LG.getV();position++){
-		if((ComNodeadj[position] >= y)&&(position!=cno))return position;
+		if((ComNodeadj[position] >= y)&&(position!=cno)&&(inflag[position]==0))return position;
 	}
 	return -1;
 }
-*/
+
 void NodeCom::run(const LIGraph &LG, const Graph &G,float y){
 	//traverse all the node until all node join in at least one community
 	     
@@ -108,27 +107,69 @@ void NodeCom::run(const LIGraph &LG, const Graph &G,float y){
 			int flag;
 			//begin a round
 			flag = 0;					
-				for(int j=0;j<waitedend;j++){
-					int temp=waited[j].node;
-					if(ComNodeadj[temp]>=y){
-						join_Node(LG,temp);
-						flag = 1;
-					}
-					else {
-						uninserted[uninsertedend++]=temp;
-						for(int k=0;k<LG.getV();k++){
-							ComNodeadj[k]-=LG.getLI(k,temp);
-						}
-						
-					}
-				}//endfor
-				waitedend = 0;
-				if(flag == 0) {
-					insertedend=0;
-					uninsertedend=0;
-					continue;
+			for(int j=0;j<waitedend;j++){
+				int temp=waited[j].node;
+				if(ComNodeadj[temp]>=y){
+					ComToNode.insert(make_pair(cno, temp));
+					inflag[temp]++;
+					inthis[temp]=true;
+					flag = 1;
 				}
-				//Update the waitedqueue
+				else {
+					for(int k=0;k<LG.getV();k++){
+						ComNodeadj[k]-=LG.getLI(k,temp);
+					}
+						
+				}
+			}//endfor
+				waitedend = 0;
+				if(flag == 0)continue;
+				int tempnode;
+			while(true){
+				flag = 0;
+				position = -1;
+				while(true){
+				
+					tempnode = get_NextNode(LG , y);
+					if(tempnode == -1)break;
+					inthis[tempnode] = true;
+					flag = 1;
+					join_Node(LG, tempnode);
+				}
+				if(flag == 0) break;
+			}
+			//Last round to join in the overlapping nodes
+			float isolated= static_cast<float>(y * VARIABLE_LASTROUND);
+			position = -1;
+			while(true){
+					tempnode = LG.getV();
+
+					++position;
+					for(; position<LG.getV();position++){
+						//if the node already have community membership.
+						if((ComNodeadj[position] >= y)&&(position!=cno)&&(inflag[position]!=0)&&(inthis[position]==false)){
+							tempnode = position;
+							break;
+						}
+						//if the node is the isolated node.
+						else if((ComNodeadj[position] >= isolated)&&(position!=cno)&&(inflag[position]==0)){
+							tempnode = position;
+							break;
+						}
+					}
+					if(tempnode == LG.getV())break;
+					inthis[tempnode] = true;
+
+					//Not add the influence of overlapping nodes
+					//set flag
+					inflag[tempnode]++;
+	
+					//join the community
+					ComToNode.insert(make_pair(cno, tempnode));
+			}
+			
+
+		/*		//Update the waitedqueue
 				
 				for(int j=0;j<insertedend;j++){
 					adjIterator tempiter(G,inserted[j]);
@@ -153,7 +194,7 @@ void NodeCom::run(const LIGraph &LG, const Graph &G,float y){
 				}
 				uninsertedend=0;
 				sort(waited.begin(),waited.begin()+waitedend);
-				
+			
 
 			while(true){
 				flag = 0;					
@@ -203,7 +244,7 @@ void NodeCom::run(const LIGraph &LG, const Graph &G,float y){
 				sort(waited.begin(),waited.begin()+waitedend);
 				
 			}//endwhile
-
+			*/
 
 		}//endif
 
